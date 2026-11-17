@@ -1,0 +1,6 @@
+{"settings":{"migration_years":3,"quantum_years":10},
+ "servers":[{"host":"localhost","port":4433,"years_secret":10,"criticality":3},
+            {"host":"localhost","port":4434,"years_secret":1,"criticality":1},
+            {"host":"localhost","port":4435,"years_secret":5,"criticality":2},
+            {"host":"localhost","port":9,"years_secret":1,"criticality":1}],
+ "code_folders":[{"path":"samples","years_secret":5,"criticality":2}]}
