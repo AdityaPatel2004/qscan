@@ -53,6 +53,14 @@ def test_tls12_ecdh_temp_key():
     assert hs["group"] == "P-256"
 
 
+def test_peer_temp_key_line_from_openssl_35():
+    # OpenSSL 3.5 renamed "Server Temp Key" to "Peer Temp Key" (seen on a real bank site)
+    hs = tls_scan.parse_handshake("Peer Temp Key: X25519, 253 bits\n"
+                                  "New, TLSv1.3, Cipher is TLS_AES_128_GCM_SHA256\n"
+                                  "Protocol: TLSv1.3\n")
+    assert hs == {"protocol": "TLSv1.3", "cipher": "TLS_AES_128_GCM_SHA256", "group": "X25519"}
+
+
 def test_cipher_names():
     assert tls_scan.cipher_to_algorithm("TLS_AES_128_GCM_SHA256") == "AES-128"
     assert tls_scan.cipher_to_algorithm("TLS_CHACHA20_POLY1305_SHA256") == "CHACHA20"
