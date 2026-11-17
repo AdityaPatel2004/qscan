@@ -110,7 +110,8 @@ def parse_handshake(text):
         New, TLSv1.3, Cipher is TLS_AES_256_GCM_SHA384
         Protocol  : TLSv1.3
         Negotiated TLS1.3 group: X25519MLKEM768      (OpenSSL 3.2+)
-        Server Temp Key: X25519, 253 bits            (older OpenSSL / TLS 1.2)
+        Server Temp Key: X25519, 253 bits            (OpenSSL 3.0-3.4)
+        Peer Temp Key: X25519, 253 bits              (OpenSSL 3.5+, same meaning)
     """
     info = {"protocol": "unknown", "cipher": "unknown", "group": "unknown"}
 
@@ -125,7 +126,7 @@ def parse_handshake(text):
     if m:
         info["group"] = normalise_group(m.group(1))
     else:
-        m = re.search(r"Server Temp Key:\s*([^\n]+)", text)
+        m = re.search(r"(?:Server|Peer) Temp Key:\s*([^\n]+)", text)
         if m:
             parts = [p.strip() for p in m.group(1).split(",")]
             # "X25519, 253 bits" -> X25519 ; "ECDH, prime256v1, 256 bits" -> P-256
