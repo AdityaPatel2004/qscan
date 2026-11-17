@@ -29,17 +29,46 @@ It covers the first two steps of a post-quantum migration programme: **discover 
 
 ## Results
 
+### Scan of public sites (17 Nov 2026)
+
+Run on macOS with Homebrew OpenSSL 3.5+ against the targets in [`targets.json`](targets.json). Full output: [`examples/real-run/report.md`](examples/real-run/report.md) and [`cbom.json`](examples/real-run/cbom.json) (validates against the CycloneDX 1.6 schema).
+
+| Site | Key exchange | Certificate | Cipher | Old TLS accepted | Top priority |
+| --- | --- | --- | --- | --- | --- |
+| cloudflare.com | `X25519MLKEM768` (hybrid PQ): **quantum-safe** | ECDSA P-256: quantum-vulnerable | AES-256-GCM | TLS 1.0 and 1.1 | 1 (old TLS) |
+| google.com | `X25519MLKEM768` (hybrid PQ): **quantum-safe** | ECDSA P-256: quantum-vulnerable | AES-256-GCM | TLS 1.0 and 1.1 | 1 (old TLS) |
+| www.onlinesbi.sbi | X25519 only, refuses the hybrid group: **quantum-vulnerable** | RSA-2048: quantum-vulnerable | AES-128-GCM (weakened) | none | 1 (key exchange, 10 + 3 > 10) |
+| tls-v1-0.badssl.com:1010 (deliberately weak test site) | ECDHE P-256: quantum-vulnerable | RSA-2048: quantum-vulnerable | AES-256-CBC with SHA-1 | TLS 1.0 | 1 (TLS 1.0) |
+| localhost:9 (closed port) | unreachable, scan continued | | | | |
+
+### What went well
+
+- **Hybrid post-quantum detection works on real servers.** Cloudflare and Google both negotiate `X25519MLKEM768`; a bank site that only offers classical X25519 was correctly flagged as priority 1 because its data must stay secret for 10 years (harvest-now-decrypt-later).
+- **It shows that hybrid key exchange alone is not "quantum-safe".** Every site, including the two with hybrid key exchange, still authenticates with a classical certificate (ECDSA or RSA), so all four get a quantum-vulnerable signature finding.
+- **Legacy TLS detection works.** The deliberately weak test site was flagged for TLS 1.0, and the scan also found that cloudflare.com and google.com still accept TLS 1.0 and 1.1 (confirmed in the raw openssl output).
+- **Saved raw output made debugging fast.** The bug below was found and fixed within minutes by reading `out/raw/`.
+
+### What went wrong, and what was done about it
+
+| Issue | Effect | Status |
+| --- | --- | --- |
+| OpenSSL 3.5 prints `Peer Temp Key:` where older versions print `Server Temp Key:` | On the first real run, the key exchange of the two servers without hybrid support was reported as "unknown" | **Fixed**: the parser accepts both spellings; a test was added. Lesson: parsing human-readable tool output is fragile, so every probe's raw output is kept |
+| The cipher label looks only at the AES key size | badssl's `ECDHE-RSA-AES256-SHA` (CBC mode, SHA-1 MAC, over TLS 1.0) is shown as "AES-256, quantum-safe" | Open. The server is still priority 1 because of its TLS 1.0 finding, but the cipher row alone is misleading. Next step: judge mode and MAC, not just key size |
+| "Broken today" for TLS 1.0/1.1 on Cloudflare and Google | Correct by the rule, but these operators keep old versions on purpose for legacy clients while modern clients get TLS 1.3 + hybrid | By design: qscan reports facts; whether a legacy fallback is acceptable is a policy decision for a person |
+| Non-standard port blocked by the local network | On one run, `tls-v1-0.badssl.com:1010` timed out | Handled: recorded as unreachable and the scan continued; it succeeded on the next run |
+| Pattern-based code scanning | One known miss (import alias) and one known false alarm (a string mentioning `hashlib.md5`) in [`samples/known_limits.py`](samples/known_limits.py) | Documented limit; a real tool would parse the code or trace it at run time |
+
 ### Test suite
 
-34 unit tests pass: one per label, one per priority band, parser tests on recorded `openssl s_client` output, scanner-logic tests (hybrid support, legacy TLS, unreachable hosts), and code-scanner tests on planted samples.
+35 unit tests pass: one per label, one per priority band, parser tests on recorded `openssl s_client` output (including the OpenSSL 3.5 format above), scanner-logic tests (hybrid support, legacy TLS, unreachable hosts), and code-scanner tests on planted samples.
 
 ### Run against controlled TLS servers
 
-Four local servers were set up with known configurations (OpenSSL 3.0, so the hybrid probe was skipped and reported as "not tested"). Full output: [`examples/test-servers/report.md`](examples/test-servers/report.md) and [`cbom.json`](examples/test-servers/cbom.json).
+Four local servers with known configurations (OpenSSL 3.0, so the hybrid probe was reported as "not tested"). Full output: [`examples/test-servers/report.md`](examples/test-servers/report.md).
 
 | Server configuration | qscan verdict |
 | --- | --- |
-| TLS 1.3, X25519 key exchange, RSA-2048 certificate, data secret 10 years, criticality 3 | Key exchange X25519: quantum-vulnerable, **priority 1** (10 + 3 > 10). Certificate RSA: vulnerable signature, **priority 2** (critical system). AES-256: safe |
+| TLS 1.3, X25519 key exchange, RSA-2048 certificate, data secret 10 years, criticality 3 | Key exchange X25519: quantum-vulnerable, **priority 1** (10 + 3 > 10). Certificate RSA: vulnerable signature, **priority 2**. AES-256: safe |
 | Accepts only TLS 1.0 | TLS 1.0: broken today, **priority 1** |
 | TLS 1.2 with RSA key transport (`AES256-SHA`) | Key exchange RSA: quantum-vulnerable, **priority 2** (5 + 3 <= 10) |
 | Closed port | Recorded as unreachable; scan continued |
@@ -47,16 +76,6 @@ Four local servers were set up with known configurations (OpenSSL 3.0, so the hy
 ### Run on source code
 
 All 8 planted weak calls in [`samples/`](samples/) were found with the correct file and line, across Python, C and Java, including Java's `Cipher.getInstance("AES")`, which silently defaults to ECB mode.
-
-[`samples/known_limits.py`](samples/known_limits.py) documents one known miss (an import alias) and one known false alarm (a string that mentions `hashlib.md5`), the two typical failure modes of pattern-based scanning.
-
-### CBOM
-
-The generated `cbom.json` validates against the official CycloneDX 1.6 JSON schema.
-
-### Public sites
-
-Point `targets.json` at public HTTPS sites and run with OpenSSL 3.5 or newer to test hybrid support. Major CDNs and browsers already negotiate `X25519MLKEM768`, so such sites should show their key exchange as quantum-safe while their certificates are still classical (vulnerable signature). Old test endpoints such as `tls-v1-0.badssl.com:1010` should be flagged for TLS 1.0.
 
 ---
 
@@ -126,7 +145,7 @@ Key exchange ranks above signatures because of harvest-now-decrypt-later: a reco
 
 - **Visibility:** only TLS endpoints and source code. Crypto in compiled binaries and libraries, SSH, VPN/IPsec, databases, message queues, key stores, HSMs and cloud KMS is not seen.
 - **Code scanning is pattern-based:** aliases and wrapper functions can be missed; strings and dead code can raise false alarms.
-- **TLS:** only the leaf certificate is read; only `X25519MLKEM768` is probed among hybrid groups; an OpenSSL build without TLS 1.0 cannot detect TLS 1.0 support.
+- **TLS:** cipher labels look only at key size (not mode or MAC); only the leaf certificate is read; only `X25519MLKEM768` is probed among hybrid groups; an OpenSSL build without TLS 1.0 cannot detect TLS 1.0 support.
 - **Business context is manual:** `years_secret` and `criticality` come from the user.
 - **Priorities are a ranking, not a prediction**, because Z is an assumption.
 
@@ -138,7 +157,7 @@ Key exchange ranks above signatures because of harvest-now-decrypt-later: a reco
 qscan/            the scanner (7 modules)
 tests/            pytest suite + recorded s_client outputs
 samples/          planted weak crypto in Python, C and Java
-examples/         report and CBOM from the controlled-server run
+examples/         reports and CBOMs from the public-site and controlled-server runs
 targets.json      example targets
 ```
 
