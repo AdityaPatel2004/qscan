@@ -1,6 +1,6 @@
 # qscan report
 
-Generated 2026-11-17 11:34 by qscan 0.1.0. Settings: migration time Y = 3 years, assumed years to a quantum computer Z = 10 years (an assumption, not a prediction).
+Generated 2026-11-17 11:39 by qscan 0.1.0. Settings: migration time Y = 3 years, assumed years to a quantum computer Z = 10 years (an assumption, not a prediction).
 
 ## Summary
 
