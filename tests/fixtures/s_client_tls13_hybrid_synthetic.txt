@@ -1,0 +1,54 @@
+depth=0 CN = localhost
+verify error:num=18:self-signed certificate
+verify return:1
+depth=0 CN = localhost
+verify return:1
+CONNECTED(00000003)
+---
+Certificate chain
+ 0 s:CN = localhost
+   i:CN = localhost
+   a:PKEY: rsaEncryption, 2048 (bit); sigalg: RSA-SHA256
+   v:NotBefore: Nov 17 03:31:09 2026 GMT; NotAfter: Feb 15 03:31:09 2027 GMT
+---
+Server certificate
+-----BEGIN CERTIFICATE-----
+MIIDCTCCAfGgAwIBAgIUKS2tkC1eANh1v7OKIV42n0CkOoowDQYJKoZIhvcNAQEL
+BQAwFDESMBAGA1UEAwwJbG9jYWxob3N0MB4XDTI2MTExNzAzMzEwOVoXDTI3MDIx
+NTAzMzEwOVowFDESMBAGA1UEAwwJbG9jYWxob3N0MIIBIjANBgkqhkiG9w0BAQEF
+AAOCAQ8AMIIBCgKCAQEA506bln56POkCeozevBOVy8yi2R7/GJF4t79QlI3VyPvH
+5KcsGp4T5YAITgKj/oQZgNpgb6AOPElM5duFlLI9YPDk2RkqVrR0QnrCn3pLsEgp
+q/0axwa7o/+NaOABEmFs8cb3hk4zzSYl9VwaIL+5JAMPMqEXBQ9q204WTNcwd7/Z
+1JyOq5nPqkAO7Ob/SPHfbARBOhmMnxWz3R11rlG7+SEY4VY/E6pAdvLpmkkKxrKW
+2EDhEFqqwA6x8swyOOCtP+5HvupZjTOmulcHhQkkPkszAIE+hQLGKj9Xt1jdksuu
++/IlrNElPffpvs+AMy9h/VaFDeG8vnRiDSaniBtAgQIDAQABo1MwUTAdBgNVHQ4E
+FgQU4yHmK1bE2JA3aQSU6fsZPl/srO4wHwYDVR0jBBgwFoAU4yHmK1bE2JA3aQSU
+6fsZPl/srO4wDwYDVR0TAQH/BAUwAwEB/zANBgkqhkiG9w0BAQsFAAOCAQEAT4a6
+Yy9p9U9urQrS+o8HMo7O8noIbOxLQMz7YwdkWNgemAMb4ON7RB4XGUJ+rVBJCOpd
+8UrY+QFGA6wT0FLqIf5dlj4hagUTYatjo3pZc78pocgQRFexREsQ6kNcnV60Igom
+J5+100xElUj/WvtOZTxcpJfoOX1MTBKF+zLPKiE1yn9N9bO3nbI2Qi5lakZCLusp
+CINU+hp972oRSAw+yJ557FuvHVxM24emoklAZsNpJK1IR1pAo6rUAN7B7elkd4Ei
+PQmkJ6N9N9sPmF/zB55wJwNroZi2zbWwZ0sv3yNIE0qJ4bRCJj9U4ZwnK1biLJaD
+4tQ1vWNAfcmSSvPtZw==
+-----END CERTIFICATE-----
+subject=CN = localhost
+issuer=CN = localhost
+---
+No client certificate CA names sent
+Peer signing digest: SHA256
+Peer signature type: RSA-PSS
+Negotiated TLS1.3 group: X25519MLKEM768
+---
+SSL handshake has read 1337 bytes and written 391 bytes
+Verification error: self-signed certificate
+---
+New, TLSv1.3, Cipher is TLS_AES_256_GCM_SHA384
+Server public key is 2048 bit
+Secure Renegotiation IS NOT supported
+Compression: NONE
+Expansion: NONE
+No ALPN negotiated
+Early data was not sent
+Verify return code: 18 (self-signed certificate)
+---
+DONE
